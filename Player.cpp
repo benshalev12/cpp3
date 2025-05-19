@@ -1,48 +1,54 @@
 #include "Player.h"
-#include <stdexcept>
+#include "Game.h"
 
-Player::Player(const std::string& name) : name(name), coins(0), is_active(true) {}
-Player::~Player() = default;
+Player::Player(const std::string& name, int id)
+    : name(name), id(id), coins(0), alive(true), economicBlocked(false), lastArrestedTarget(-1) {}
 
-std::string Player::getName() const { return name; }
+const std::string& Player::getName() const { return name; }
+int Player::getID() const { return id; }
 int Player::getCoins() const { return coins; }
-bool Player::isActive() const { return is_active; }
-
-void Player::deactivate() { is_active = false; }
+bool Player::isAlive() const { return alive; }
+bool Player::isBlocked() const { return economicBlocked; }
+void Player::setEconomicBlocked(bool blocked) { economicBlocked = blocked; }
+void Player::setLastArrested(int targetID) { lastArrestedTarget = targetID; }
+int Player::getLastArrested() const { return lastArrestedTarget; }
 
 void Player::addCoins(int amount) { coins += amount; }
 void Player::removeCoins(int amount) {
-    if (coins < amount) throw std::runtime_error("Not enough coins.");
+    if (coins < amount) throw std::runtime_error("Not enough coins");
     coins -= amount;
 }
+void Player::kill() { alive = false; }
 
-void Player::blockTax() { blocked_from_tax = true; }
-void Player::blockEconomy() { blocked_from_economy = true; }
-void Player::resetBlocks() {
-    blocked_from_tax = false;
-    blocked_from_arrest = false;
-    blocked_from_economy = false;
+void Player::gather(Game& game) {
+    if (economicBlocked) throw std::runtime_error("Player is under economic sanction");
+    addCoins(1);
 }
 
-bool Player::isBlockedFromTax() const { return blocked_from_tax; }
-bool Player::isBlockedFromArrest() const { return blocked_from_arrest; }
-bool Player::isBlockedFromEconomy() const { return blocked_from_economy; }
+void Player::tax(Game& game) {
+    if (economicBlocked) throw std::runtime_error("Player is under economic sanction");
+    addCoins(2);
+}
 
-void Player::setLastArrestTarget(const std::string& name) { last_arrest_target = name; }
-std::string Player::getLastArrestTarget() const { return last_arrest_target; }
+void Player::bribe(Game& game) {
+    removeCoins(4);
+}
 
-void Player::onSanctioned() {}
-void Player::onArrested() {}
-void Player::startTurnBonus() {}
+void Player::arrest(Game& game, Player& target) {
+    if (target.getID() == lastArrestedTarget)
+        throw std::runtime_error("Cannot arrest same player twice in a row");
+    target.removeCoins(1);
+    addCoins(1);
+    lastArrestedTarget = target.getID();
+}
 
-bool Player::canBlockTax() const { return false; }
-bool Player::canBlockBribe() const { return false; }
-bool Player::canBlockArrest() const { return false; }
-bool Player::canBlockCoup() const { return false; }
-bool Player::canInvest() const { return false; }
-bool Player::canSpy() const { return false; }
+void Player::sanction(Game& game, Player& target) {
+    removeCoins(3);
+    target.setEconomicBlocked(true);
+}
 
-void Player::invest() {}
-void Player::spyOn(Player& other) { (void)other; }
-void Player::blockNextCoup() {}
-void Player::setArrestProtected(bool val) { blocked_from_arrest = val; }
+void Player::coup(Game& game, Player& target) {
+    if (getCoins() < 7) throw std::runtime_error("Not enough coins for coup");
+    removeCoins(7);
+    target.kill();
+}

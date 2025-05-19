@@ -1,25 +1,34 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <stdexcept>
 #include "Player.h"
-#include "ActionManager.h"
+#include "Merchant.h"
+
 
 class Game {
 private:
     std::vector<Player*> players;
-    ActionManager actions;
-    size_t turnIndex = 0;
-    bool started = false;
+    int currentTurnIndex;
+    int bank;
+    bool gameEnded;
 
 public:
+    Game();
     ~Game();
-    void addPlayer(const std::string& name);
-    void start();
-    bool isOver() const;
-    Player* currentPlayer();
-    const std::vector<Player*>& getPlayers() const;
+
+    void addPlayer(Player* player);
+    void playTurn();
+    std::string turn() const;
+    std::vector<std::string> playersList() const;
+    std::string winner() const;
+
+    void blockArrestFor(Player& target);
+    void cancelCoupOn(Player& victim);
+    void cancelBribe(Player& briber);
+    void addToBank(int amount);
+
+    int getBank() const;
+    Player* getCurrentPlayer();
     void nextTurn();
-    std::string getWinner() const;
-    ActionManager& getActions();
-    Player* getPlayerByName(const std::string& name);
 };

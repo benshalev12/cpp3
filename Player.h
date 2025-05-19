@@ -1,54 +1,41 @@
 #pragma once
 #include <string>
+#include <stdexcept>
+
+class Game;
 
 class Player {
 protected:
     std::string name;
+    int id;
     int coins;
-    bool is_active;
-    bool blocked_from_tax = false;
-    bool blocked_from_arrest = false;
-    bool blocked_from_economy = false;
-    std::string last_arrest_target;
+    bool alive;
+    bool economicBlocked;
+    int lastArrestedTarget;
 
 public:
-    Player(const std::string& name);
-    virtual ~Player();
+    Player(const std::string& name, int id);
+    virtual ~Player() = default;
 
-    std::string getName() const;
+    const std::string& getName() const;
+    int getID() const;
     int getCoins() const;
-    bool isActive() const;
+    bool isAlive() const;
+    bool isBlocked() const;
+    void setEconomicBlocked(bool blocked);
+    void setLastArrested(int targetID);
+    int getLastArrested() const;
 
-    void deactivate();
     void addCoins(int amount);
     void removeCoins(int amount);
-
-    void blockTax();
-    void blockEconomy();
-    void resetBlocks();
-
-    bool isBlockedFromTax() const;
-    bool isBlockedFromArrest() const;
-    bool isBlockedFromEconomy() const;
-
-    void setLastArrestTarget(const std::string& name);
-    std::string getLastArrestTarget() const;
+    void kill();
 
     virtual std::string getRole() const = 0;
-    virtual void onSanctioned();
-    virtual void onArrested();
-    virtual void startTurnBonus();
 
-    // Extended virtual interface
-    virtual bool canBlockTax() const;
-    virtual bool canBlockBribe() const;
-    virtual bool canBlockArrest() const;
-    virtual bool canBlockCoup() const;
-    virtual bool canInvest() const;
-    virtual bool canSpy() const;
-
-    virtual void invest();
-    virtual void spyOn(Player& other);
-    virtual void blockNextCoup();
-    virtual void setArrestProtected(bool val);
+    virtual void gather(Game& game);
+    virtual void tax(Game& game);
+    virtual void bribe(Game& game);
+    virtual void arrest(Game& game, Player& target);
+    virtual void sanction(Game& game, Player& target);
+    virtual void coup(Game& game, Player& target);
 };

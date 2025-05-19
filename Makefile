@@ -1,30 +1,17 @@
 
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-LDFLAGS =
-INCLUDES = -I.
+CXXFLAGS = -std=c++17 -Wall -Wextra
+LDFLAGS = -lsfml-graphics -lsfml-window -lsfml-system
 
-OBJS = main.o Game.o Player.o ActionManager.o
-TEST_OBJS = test.o Game.o Player.o ActionManager.o
+SRC = main.cpp Player.cpp Game.cpp Governor.cpp Spy.cpp Baron.cpp General.cpp Judge.cpp Merchant.cpp
+OBJ = $(SRC:.cpp=.o)
 
-TARGET = coup_game
-TEST_TARGET = test
+TARGET = coup_gui
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(TARGET)
-
-test: $(TEST_TARGET)
-
-$(TEST_TARGET): $(TEST_OBJS)
-	$(CXX) $(CXXFLAGS) $(TEST_OBJS) -o $(TEST_TARGET)
-
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+$(TARGET): $(OBJ)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 clean:
-	rm -f *.o $(TARGET) $(TEST_TARGET)
-
-valgrind: test
-	valgrind --leak-check=full --track-origins=yes ./$(TEST_TARGET)
+	rm -f $(OBJ) $(TARGET)

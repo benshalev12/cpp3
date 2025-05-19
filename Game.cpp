@@ -1,64 +1,74 @@
 #include "Game.h"
-#include "Roles.h"
-#include <stdexcept>
-#include <random>
-#include <ctime>
-#include <algorithm>
+#include <iostream>
+
+Game::Game() : currentTurnIndex(0), bank(50), gameEnded(false) {}
 
 Game::~Game() {
-    for (Player* p : players) delete p;
+    for (auto p : players) delete p;
 }
 
-void Game::addPlayer(const std::string& name) {
-    std::vector<Player*> roles = {
-        new Governor(name), new Spy(name), new Baron(name),
-        new General(name), new Judge(name), new Merchant(name)
-    };
-    static std::mt19937 rng(static_cast<unsigned>(std::time(nullptr)));
-    std::shuffle(roles.begin(), roles.end(), rng);
-    players.push_back(roles.front());
-    for (size_t i = 1; i < roles.size(); ++i) delete roles[i];
+void Game::addPlayer(Player* player) {
+    players.push_back(player);
 }
 
-void Game::start() {
-    if (players.size() < 2) throw std::runtime_error("Need at least 2 players.");
-    started = true;
+std::string Game::turn() const {
+    if (gameEnded) throw std::runtime_error("Game has ended");
+    return players[currentTurnIndex]->getName();
 }
 
-bool Game::isOver() const {
-    int count = 0;
+std::vector<std::string> Game::playersList() const {
+    std::vector<std::string> result;
     for (auto p : players)
-        if (p->isActive()) ++count;
-    return count <= 1;
+        if (p->isAlive()) result.push_back(p->getName());
+    return result;
 }
 
-Player* Game::currentPlayer() {
-    while (!players[turnIndex % players.size()]->isActive())
-        turnIndex++;
-    return players[turnIndex % players.size()];
+std::string Game::winner() const {
+    int aliveCount = 0;
+    std::string lastAlive;
+    for (auto p : players) {
+        if (p->isAlive()) {
+            aliveCount++;
+            lastAlive = p->getName();
+        }
+    }
+    if (aliveCount > 1) throw std::runtime_error("Game is still ongoing");
+    return lastAlive;
 }
 
-const std::vector<Player*>& Game::getPlayers() const {
-    return players;
+void Game::blockArrestFor(Player& target) {
+    target.setLastArrested(target.getID()); // חוסם מעצר
+}
+
+void Game::cancelCoupOn(Player& victim) {
+    victim.kill(); // ניתן לשנות לפי הצורך
+}
+
+void Game::cancelBribe(Player& briber) {
+    std::cout << "Bribe by " << briber.getName() << " was blocked.\n";
+}
+
+void Game::addToBank(int amount) {
+    bank += amount;
+}
+
+int Game::getBank() const {
+    return bank;
+}
+
+Player* Game::getCurrentPlayer() {
+    return players[currentTurnIndex];
 }
 
 void Game::nextTurn() {
-    turnIndex++;
-}
-
-std::string Game::getWinner() const {
-    for (auto p : players)
-        if (p->isActive()) return p->getName();
-    throw std::runtime_error("No winner yet.");
-}
-
-ActionManager& Game::getActions() {
-    return actions;
-}
-
-Player* Game::getPlayerByName(const std::string& name) {
-    for (Player* p : players) {
-        if (p->getName() == name) return p;
+    do {
+        currentTurnIndex = (currentTurnIndex + 1) % players.size();
+    } while (!players[currentTurnIndex]->isAlive());
+    players[currentTurnIndex]->setEconomicBlocked(false);
+    if (players[currentTurnIndex]->getRole() == "Merchant") {
+        static_cast<Merchant*>(players[currentTurnIndex])->startTurnBonus();
     }
-    throw std::runtime_error("Player not found.");
+    if (players[currentTurnIndex]->getCoins() >= 10) {
+        throw std::runtime_error("Must perform coup due to 10+ coins");
+    }
 }
